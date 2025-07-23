@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デジタル署名シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 700; /* font-bold */
+        }
+        p {
+            color: #34495e;
+            margin-bottom: 25px;
+            font-size: 1.125rem; /* text-lg */
+            line-height: 1.6;
+        }
+        .section-title {
+            font-size: 1.75rem; /* text-3xl */
+            font-weight: 600;
+            color: #3b82f6;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            color: #34495e;
+            background-color: #f9fafb;
+            resize: vertical;
+            min-height: 50px;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .output-box {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            word-break: break-all;
+            text-align: left;
+            font-size: 0.95rem;
+            color: #2c3e50;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            border: 1px solid #dcdcdc;
+        }
+        /* Animation for hash output change */
+        .output-box.changed {
+            background-color: #ffe0b2; /* Light orange for change */
+            animation: flashChange 0.5s ease-in-out;
+        }
+        @keyframes flashChange {
+            0% { background-color: #ffe0b2; }
+            50% { background-color: #fff8e1; }
+            100% { background-color: #ecf0f1; } /* Return to original */
+        }
+
+        /* General button styling - will be overridden by more specific classes */
+        button {
+            color: white; /* Default text color for all custom buttons */
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Style for "メッセージに署名" and "署名を検証" buttons */
+        .action-button {
+            background-color: #6c757d; /* Medium gray */
+            color: white; /* Explicitly set text color to white */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Adjusted shadow for gray */
+        }
+        .action-button:hover:not(:disabled) {
+            background-color: #5a6268; /* Darker gray on hover */
+            transform: translateY(-1px);
+        }
+        .action-button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+        .action-button:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+            box-shadow: none;
+            color: #666;
+        }
+
+
+        /* Style for "コピー" and "鍵を生成" buttons */
+        .copy-button {
+            background-color: #60a5fa; /* Blue color */
+            padding: 8px 15px; /* Smaller padding */
+            border-radius: 5px; /* Slightly smaller border-radius */
+            font-size: 0.85rem; /* Smaller font size */
+            margin-left: 10px;
+            box-shadow: 0 4px 10px rgba(96, 165, 250, 0.3); /* Blue shadow */
+        }
+        .copy-button:hover {
+            background-color: #3b82f6; /* Darker blue on hover */
+        }
+        .copy-button:active {
+            box_shadow: 0 2px 5px rgba(59, 130, 246, 0.2);
+        }
+
+        .result-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .result-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .result-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .result-info { /* For public key match message */
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .flex-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .flex-row .input-group {
+            flex-grow: 1;
+        }
+        .flex-row .copy-container {
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+        .back-button-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .back-button {
+            background-color: #4a5568; /* Darker gray for back button */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: none;
+            display: inline-block;
+            text-decoration: none; /* Remove underline for links */
+        }
+        .back-button:hover {
+            background-color: #2d3748;
+            transform: translateY(-1px);
+        }
+        .back-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        /* Initially hidden verifier fields */
+        .verifier-hidden-fields {
+            display: none;
+        }
+
+        /* New: Copy confirmation message style */
+        #copyConfirmationMessage {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #28a745; /* Green */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #copyConfirmationMessage.show {
+            opacity: 1;
+        }
+        /* Added style for paste instruction */
+        .paste-instruction {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 5px;
+            text-align: left;
+            font-weight: 600; /* Make it bold */
+            padding: 5px 0; /* Add some padding */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-height: 100vh; p-5">
+    <div class="container bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-4xl font-bold mb-5 text-gray-800">デジタル署名シミュレーター</h1>
+        <p class="text-lg text-gray-700 mb-6">
+            このシミュレーターは、デジタル署名がどのように機能し、データの改ざんや「なりすまし」を防ぐかを体験するためのものです。以下の手順で試してみてください。
+        </p>
+
+        <!-- 署名者 (Sender) セクション -->
+        <h2 class="section-title">署名者 (Sender)</h2>
+        <div class="input-group">
+            <label for="senderPublicKeyDisplay" class="block">公開鍵 (Public Key):</label>
+            <div class="flex-row">
+                <div id="senderPublicKeyDisplay" class="output-box flex-grow"></div>
+                <button onclick="copyToClipboard('senderPublicKeyDisplay')" class="copy-button">コピー</button>
+            </div>
+        </div>
+        <div class="input-group">
+            <label for="senderMessage" class="block">メッセージ (Message):</label>
+            <textarea id="senderMessage" rows="4" placeholder="ここに署名するメッセージを入力してください。"></textarea>
+        </div>
+        <button id="signMessageButton" class="w-full mb-6 action-button">メッセージに署名</button>
+        <div class="input-group">
+            <label for="senderMessageHashDisplay" class="block">メッセージのハッシュ値 (SHA-256):</label>
+            <div id="senderMessageHashDisplay" class="output-box">ここにメッセージのハッシュ値が表示されます</div>
+        </div>
+        <!-- デジタル署名欄は削除されました -->
+
+        <!-- 検証者 (Verifier) セクション -->
+        <h2 class="section-title">検証者 (Verifier)</h2>
+        <div class="input-group">
+            <label for="verifierPublicKeyInput" class="block">開封用公開鍵 (Public Key for Decryption):</label>
+            <div class="flex-row">
+                <input type="text" id="verifierPublicKeyInput" placeholder="公開鍵をここに貼り付けてください">
+                <button id="verifyPublicKeyButton" class="copy-button">公開鍵を検証</button>
+            </div>
+            <!-- 貼り付け指示は削除されました -->
+        </div>
+        <div id="publicKeyVerificationResult" class="result-message hidden"></div>
+
+        <div id="verifierContent" class="verifier-hidden-fields">
+            <div class="input-group">
+                <label for="verifierReceivedMessage" class="block">受信メッセージ (Received Message):</label>
+                <textarea id="verifierReceivedMessage" rows="4" placeholder="署名されたメッセージがここに表示されます"></textarea>
+            </div>
+            <div class="input-group">
+                <label for="verifierReceivedHashDisplay" class="block">署名者が送ったハッシュ値:</label>
+                <div id="verifierReceivedHashDisplay" class="output-box"></div>
+            </div>
+            <div class="input-group">
+                <label for="verifierGeneratedHashDisplay" class="block">検証者が生成したハッシュ値:</label>
+                <div id="verifierGeneratedHashDisplay" class="output-box"></div>
+            </div>
+            <button id="verifyMessageButton" class="w-full action-button" disabled>受信メッセージを検証</button>
+            <div id="verificationResult" class="result-message hidden"></div>
+        </div>
+
+        <div class="back-button-container">
+            <a href="index.html" class="back-button">インデックスへ戻る</a>
+        </div>
+    </div>
+
+    <!-- New: Copy confirmation message -->
+    <div id="copyConfirmationMessage" class="hidden">コピーしました！</div>
+
+    <script>
+        // 固定の秘密鍵と公開鍵（デモ用）
+        const FIXED_PRIVATE_KEY = "mySuperSecretPrivateKeyForDigitalSignatureDemo1234567890abcdef";
+        // 公開鍵は秘密鍵から派生させる（デモ用の単純なハッシュ）
+        const FIXED_PUBLIC_KEY = CryptoJS.SHA256(FIXED_PRIVATE_KEY + "_PUBLIC_DERIVATION_SALT").toString(CryptoJS.enc.Hex);
+
+        // DOM要素の取得
+        const senderPublicKeyDisplay = document.getElementById('senderPublicKeyDisplay');
+        const senderMessageInput = document.getElementById('senderMessage');
+        const signMessageButton = document.getElementById('signMessageButton');
+        const senderMessageHashDisplay = document.getElementById('senderMessageHashDisplay');
+
+        const verifierPublicKeyInput = document.getElementById('verifierPublicKeyInput');
+        const verifyPublicKeyButton = document.getElementById('verifyPublicKeyButton');
+        const publicKeyVerificationResultDiv = document.getElementById('publicKeyVerificationResult');
+        const verifierContent = document.getElementById('verifierContent');
+
+        const verifierReceivedMessage = document.getElementById('verifierReceivedMessage');
+        const verifierReceivedHashDisplay = document.getElementById('verifierReceivedHashDisplay');
+        const verifierGeneratedHashDisplay = document.getElementById('verifierGeneratedHashDisplay');
+        const verifyMessageButton = document.getElementById('verifyMessageButton');
+        const verificationResultDiv = document.getElementById('verificationResult');
+        const copyConfirmationMessage = document.getElementById('copyConfirmationMessage'); // New: Copy confirmation message element
+
+        let previousSenderMessageHash = ''; // 以前の送信者メッセージハッシュを保存
+
+        /**
+         * 署名者の公開鍵を表示する関数
+         */
+        function displaySenderPublicKey() {
+            senderPublicKeyDisplay.textContent = FIXED_PUBLIC_KEY;
+        }
+
+        /**
+         * メッセージにデジタル署名を付与する関数
+         */
+        function signMessage() {
+            const message = senderMessageInput.value;
+            if (!message.trim()) {
+                showMessageBox("メッセージを入力してください。", "error");
+                return;
+            }
+
+            // メッセージのハッシュを計算
+            const messageHash = CryptoJS.SHA256(message).toString(CryptoJS.enc.Hex);
+
+            // ハッシュ値が変更された場合にアニメーションを適用
+            if (messageHash !== previousSenderMessageHash && previousSenderMessageHash !== '') {
+                senderMessageHashDisplay.classList.add('changed');
+                // アニメーション終了後にクラスを削除
+                setTimeout(() => {
+                    senderMessageHashDisplay.classList.remove('changed');
+                }, 500); // アニメーションの時間と合わせる
+            }
+
+            senderMessageHashDisplay.textContent = messageHash; // メッセージハッシュを表示
+            previousSenderMessageHash = messageHash; // 現在のハッシュを保存
+
+            // 検証者側にメッセージとメッセージハッシュを自動的にコピー
+            verifierReceivedMessage.value = message; // 受信メッセージ欄に署名者のメッセージを表示
+            verifierReceivedHashDisplay.textContent = messageHash;
+
+            // 署名後、検証者側の情報をリセット（非表示に戻す）
+            // ただし、verifierPublicKeyInput.value はクリアしない
+            verifierContent.classList.add('verifier-hidden-fields');
+            publicKeyVerificationResultDiv.classList.add('hidden');
+            verificationResultDiv.classList.add('hidden');
+            verifyMessageButton.disabled = true; // 署名検証ボタンを無効化
+            verifierGeneratedHashDisplay.textContent = ''; // 検証者が生成したハッシュ値もクリア
+            // verifierReceivedHashDisplay.textContent は署名時に自動で入るので、ここではクリアしない
+        }
+
+        /**
+         * 検証者側のセクションを初期状態に戻す（非表示にする）
+         * ただし、verifierPublicKeyInput.value はクリアしない
+         */
+        function resetVerifierSection() {
+            verifierContent.classList.add('verifier-hidden-fields');
+            publicKeyVerificationResultDiv.classList.add('hidden');
+            verificationResultDiv.classList.add('hidden');
+            verifyMessageButton.disabled = true; // 署名検証ボタンを無効化
+            verifierGeneratedHashDisplay.textContent = ''; // 検証者が生成したハッシュ値もクリア
+            // verifierReceivedHashDisplay.textContent は署名時に自動で入るので、ここではクリアしない
+            // verifierReceivedMessage.value は署名時に自動で入るので、ここではクリアしない
+            // verifierPublicKeyInput.value はユーザーが手動で入力するため、ここではクリアしない
+        }
+
+        /**
+         * 公開鍵を検証する関数
+         */
+        function verifyPublicKey() {
+            const enteredPublicKey = verifierPublicKeyInput.value.trim();
+
+            if (!enteredPublicKey) {
+                showMessageBox("公開鍵を入力してください。", "error");
+                return;
+            }
+
+            if (enteredPublicKey === FIXED_PUBLIC_KEY) {
+                publicKeyVerificationResultDiv.textContent = '✅ 公開鍵が一致しました！';
+                publicKeyVerificationResultDiv.className = 'result-message result-success';
+                verifierContent.classList.remove('verifier-hidden-fields'); // 隠されていたコンテンツを表示
+                verifyMessageButton.disabled = false; // 署名検証ボタンを有効化
+            } else {
+                publicKeyVerificationResultDiv.textContent = '❌ 公開鍵が一致しません。';
+                publicKeyVerificationResultDiv.className = 'result-message result-error';
+                verifierContent.classList.add('verifier-hidden-fields'); // 隠されていたコンテンツを非表示
+                verifyMessageButton.disabled = true; // 署名検証ボタンを無効化
+            }
+            publicKeyVerificationResultDiv.classList.remove('hidden');
+            verificationResultDiv.classList.add('hidden'); // 以前の署名検証結果を非表示
+            verifierGeneratedHashDisplay.textContent = ''; // 検証者が生成したハッシュ値もクリア
+        }
+
+        /**
+         * デジタル署名を検証する関数
+         */
+        function verifyMessage() {
+            const receivedMessage = verifierReceivedMessage.value;
+            const sentHash = verifierReceivedHashDisplay.textContent; // 署名者が送ったハッシュ値
+
+            if (!receivedMessage || !sentHash) {
+                showMessageBox("検証に必要な情報が不足しています。公開鍵を検証してから再度お試しください。", "error");
+                return;
+            }
+
+            // 受信メッセージからハッシュ値を再計算
+            const verifierGeneratedHash = CryptoJS.SHA256(receivedMessage).toString(CryptoJS.enc.Hex);
+            verifierGeneratedHashDisplay.textContent = verifierGeneratedHash; // 検証者が生成したハッシュ値を表示
+
+            // 署名者が送ったハッシュ値と、検証者が受信メッセージから生成したハッシュ値を比較
+            if (verifierGeneratedHash === sentHash) {
+                verificationResultDiv.textContent = '✅ 一致しました。改ざんはありません。';
+                verificationResultDiv.className = 'result-message result-success';
+            } else {
+                verificationResultDiv.textContent = '❌ 一致しません。改ざんがありました。';
+                verificationResultDiv.className = 'result-message result-error';
+            }
+            verificationResultDiv.classList.remove('hidden');
+        }
+
+        /**
+         * 指定された要素のテキストをクリップボードにコピーする関数
+         * @param {string} elementId - コピーするテキストを含む要素のID
+         */
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            let textToCopy;
+
+            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+                textToCopy = element.value;
+            } else {
+                textToCopy = element.textContent;
+            }
+
+            if (textToCopy) {
+                const tempInput = document.createElement('textarea');
+                tempInput.value = textToCopy;
+                // tempInputを一時的にDOMに追加し、選択してコピーコマンドを実行
+                // スタイルを調整して、ブラウザがコピー操作を正しく認識できるようにします
+                tempInput.style.position = 'fixed';
+                tempInput.style.top = '0';
+                tempInput.style.left = '0';
+                tempInput.style.width = '1px';
+                tempInput.style.height = '1px';
+                tempInput.style.padding = '0';
+                tempInput.style.border = 'none';
+                tempInput.style.outline = 'none';
+                tempInput.style.boxShadow = 'none';
+                tempInput.style.background = 'transparent';
+                tempInput.readOnly = true; // 読み取り専用に設定
+                tempInput.tabIndex = -1; // タブでフォーカスされないように設定
+
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                tempInput.setSelectionRange(0, tempInput.value.length); // モバイル対応
+
+                let success = false;
+                try {
+                    success = document.execCommand('copy');
+                    console.log('Copy command executed:', success); // デバッグログ
+                } catch (err) {
+                    console.error('Copy command failed:', err); // デバッグログ
+                } finally {
+                    document.body.removeChild(tempInput); // コピー後、要素を削除
+                }
+
+                // コピー確認メッセージを表示
+                if (success) {
+                    showMessageBox('コピーしました！', 'success');
+                } else {
+                    showMessageBox('コピーに失敗しました。手動でコピーしてください。', 'error');
+                }
+            }
+        }
+
+        /**
+         * カスタムメッセージボックスを表示する関数
+         * @param {string} message - 表示するメッセージ
+         * @param {string} type - メッセージの種類 ('success', 'error', 'info')
+         */
+        function showMessageBox(message, type) {
+            const messageBox = document.getElementById('copyConfirmationMessage'); // 同じ要素を再利用
+            messageBox.textContent = message;
+            // 既存のクラスを全て削除し、新しいクラスを適用
+            messageBox.className = 'hidden'; // まずhiddenにして、クラスをリセット
+            messageBox.classList.add('result-message', 'show', `result-${type}`); // スタイルクラスを適用
+
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+                messageBox.classList.add('hidden'); // アニメーション後に完全に非表示
+            }, 5000); // 5秒後に非表示
+        }
+
+
+        // イベントリスナーの設定
+        signMessageButton.addEventListener('click', signMessage);
+        // 公開鍵入力欄が変更されたら、検証結果をリセットするが、入力値は保持する
+        verifierPublicKeyInput.addEventListener('input', () => {
+            verifierContent.classList.add('verifier-hidden-fields');
+            publicKeyVerificationResultDiv.classList.add('hidden');
+            verificationResultDiv.classList.add('hidden');
+            verifyMessageButton.disabled = true;
+            verifierGeneratedHashDisplay.textContent = '';
+            // verifierReceivedMessage.value は署名時に自動で入るので、ここではクリアしない
+            // verifierReceivedHashDisplay.textContent も署名時に自動で入るので、ここではクリアしない
+        });
+        verifyPublicKeyButton.addEventListener('click', verifyPublicKey);
+        verifyMessageButton.addEventListener('click', verifyMessage);
+
+        // ページロード時の初期設定
+        window.onload = () => {
+            displaySenderPublicKey(); // 署名者の公開鍵を初期表示
+            senderMessageInput.value = '花子さんは太郎に10BTC送った'; // 初期メッセージを設定
+            signMessage(); // 初期メッセージで署名し、検証者側にもコピー
+            // 検証者セクションを初期状態（非表示）に戻す
+            verifierContent.classList.add('verifier-hidden-fields');
+            publicKeyVerificationResultDiv.classList.add('hidden');
+            verificationResultDiv.classList.add('hidden');
+            verifyMessageButton.disabled = true;
+            // verifierPublicKeyInput.value はクリアしない (ユーザーが貼り付けるため)
+            verifierGeneratedHashDisplay.textContent = '';
+            // verifierReceivedMessage.value と verifierReceivedHashDisplay.textContent は signMessage() で設定されたままにする
+        };
+    </script>
+</body>
+</html>
