@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暗号技術＆ブロックチェーン・シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 15px; /* Adjust margin to save space */
+            font-size: 2.0rem; /* Adjusted font size to fit on one line */
+            font-weight: 700; /* font-bold */
+            white-space: nowrap; /* Prevent text from wrapping */
+            overflow: hidden; /* Hide overflow if it still wraps on very small screens */
+            text-overflow: ellipsis; /* Add ellipsis if text is truncated */
+        }
+        p {
+            color: #34495e;
+            margin-bottom: 30px;
+            font-size: 1.125rem; /* text-lg */
+            line-height: 1.6;
+        }
+        .simulator-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-top: 30px;
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .simulator-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+        }
+        .simulator-card {
+            background-color: #f9fafb;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .simulator-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .simulator-card h2 {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 600;
+            color: #3b82f6;
+            margin-bottom: 15px;
+        }
+        .simulator-card p {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 20px;
+            flex-grow: 1; /* Allow description to take available space */
+        }
+        .simulator-card a {
+            background-color: #3b82f6;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+            display: inline-block; /* Ensure padding works */
+        }
+        .simulator-card a:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .simulator-card a:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-5">
+    <div class="container bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-5xl font-bold mb-6 text-gray-800">暗号技術＆ブロックチェーン・シミュレーター</h1>
+        <p class="text-lg text-gray-700 mb-8">
+            このページでは、暗号技術とブロックチェーンの主要な概念をインタラクティブに体験できるシミュレーターにアクセスできます。各ツールのリンクをクリックして、それぞれの仕組みを深く理解しましょう。
+        </p>
+
+        <div class="simulator-grid">
+            <!-- シミュレーター1: ハッシュ関数シミュレーター -->
+            <div class="simulator-card">
+                <h2>ハッシュ関数シミュレーター</h2>
+                <p>
+                    任意のテキストを入力し、そのハッシュ値がどのように生成されるかを体験します。入力内容のわずかな変更がハッシュ値に大きな影響を与える様子を確認し、ハッシュ関数の改ざん検出能力を理解できます。
+                </p>
+                <a href="hash-function-simulator.html">シミュレーターへ</a>
+            </div>
+
+            <!-- シミュレーター2: デジタル署名シミュレーター -->
+            <div class="simulator-card">
+                <h2>デジタル署名シミュレーター</h2>
+                <p>
+                    メッセージにデジタル署名を付与し、その署名を検証するプロセスを体験します。秘密鍵と公開鍵のペアがどのように「なりすまし」やデータ改ざんを防ぐかを学びます。
+                </p>
+                <a href="digital-signature-simulator.html">シミュレーターへ</a>
+            </div>
+
+            <!-- シミュレーター3: 単一ブロックチェーンシミュレーター (PoW版) -->
+            <div class="simulator-card">
+                <h2>単一ブロックチェーンシミュレーター (PoW版)</h2>
+                <p>
+                    プルーフ・オブ・ワーク (PoW) を含む単一のブロックチェーンの動作を体験できます。新しいブロックのマイニングや、過去のデータ改ざんがチェーンに与える影響を視覚的に確認できます。
+                </p>
+                <a href="single-blockchain-simulator.html">シミュレーターへ</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
