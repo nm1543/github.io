@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ハッシュ関数シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 700; /* font-bold */
+        }
+        p {
+            color: #34495e;
+            margin-bottom: 25px;
+            font-size: 1.125rem; /* text-lg */
+            line-height: 1.6;
+        }
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 2.5rem; /* Increased font size for input text to 2.5rem */
+            color: #34495e;
+            background-color: #f9fafb;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .hash-output {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            word-break: break-all;
+            text-align: left;
+            font-size: 2.2rem !important; /* フォントサイズを維持 */
+            font-weight: 900 !important; /* 強調を維持 */
+            color: #2c3e50;
+            min-height: 150px; /* 高さを調整 */
+            display: block; /* ブロック要素として表示 */
+            border: 1px solid #dcdcdc;
+            transition: background-color 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* 文字の影を維持 */
+            line-height: 1.8 !important; /* 行間をさらに調整し、!importantで強制 */
+        }
+        .hash-output.changed {
+            background-color: #ffe0b2; /* Light orange for change */
+            animation: flashChange 0.5s ease-in-out;
+        }
+        @keyframes flashChange {
+            0% { background-color: #ffe0b2; }
+            50% { background-color: #fff8e1; }
+            100% { background-color: #ffe0b2; }
+        }
+        .back-button-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .back-button {
+            background-color: #4a5568; /* Darker gray for back button */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: none;
+            display: inline-block;
+            text-decoration: none; /* Remove underline for links */
+        }
+        .back-button:hover {
+            background-color: #2d3748;
+            transform: translateY(-1px);
+        }
+        .back-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-5">
+    <div class="container bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-4xl font-bold mb-5 text-gray-800">ハッシュ関数シミュレーター</h1>
+        <p class="text-lg text-gray-700 mb-6">
+            以下のテキストボックスに任意のテキストを入力してください。入力内容が少しでも変わると、ハッシュ値が大きく変化する様子を体験できます。これがハッシュ関数が改ざんを検出する仕組みです。
+        </p>
+
+        <div class="input-group mb-6">
+            <label for="inputText" class="block text-gray-800 font-semibold mb-2">入力テキスト:</label>
+            <textarea id="inputText" class="w-full p-3 border-2 border-gray-300 rounded-lg text-gray-700 focus:border-blue-500 focus:ring-blue-500 transition duration-300 ease-in-out" rows="5" placeholder="ここにテキストを入力してください。例: 花子さんは太郎に10BTC送った"></textarea>
+        </div>
+
+        <div class="input-group">
+            <label for="hashOutput" class="block text-gray-800 font-semibold mb-2">生成されたハッシュ値 (SHA-256):</label>
+            <div id="hashOutput" class="hash-output bg-gray-200 p-4 rounded-lg text-gray-800 text-sm break-all select-all">
+                ここにハッシュ値が表示されます。
+            </div>
+        </div>
+
+        <div class="back-button-container">
+            <a href="index.html" class="back-button">インデックスへ戻る</a>
+        </div>
+    </div>
+
+    <script>
+        // DOM要素の取得
+        const inputText = document.getElementById('inputText');
+        const hashOutput = document.getElementById('hashOutput');
+        let previousHash = ''; // 以前のハッシュ値を保存
+        let typingTimer; // タイマーIDを保持する変数
+        const doneTypingInterval = 1000; // 1秒 (1000ミリ秒) の遅延に変更
+
+        /**
+         * テキストのSHA-256ハッシュ値を計算し、表示を更新する関数
+         */
+        function calculateAndDisplayHash() {
+            const text = inputText.value;
+            // CryptoJSライブラリを使用してSHA-256ハッシュを計算
+            const currentHash = CryptoJS.SHA256(text).toString(CryptoJS.enc.Hex);
+
+            // ハッシュ値が変更された場合にアニメーションを適用
+            if (currentHash !== previousHash && previousHash !== '') {
+                hashOutput.classList.add('changed');
+                // アニメーション終了後にクラスを削除
+                setTimeout(() => {
+                    hashOutput.classList.remove('changed');
+                }, 500); // アニメーションの時間と合わせる
+            }
+
+            // ハッシュ値を表示
+            hashOutput.textContent = currentHash;
+            previousHash = currentHash; // 現在のハッシュ値を保存
+        }
+
+        /**
+         * テキスト入力時に呼び出される関数
+         * タイマーをクリアし、新しいタイマーを設定する
+         */
+        function onInput() {
+            clearTimeout(typingTimer); // 既存のタイマーをクリア
+            typingTimer = setTimeout(calculateAndDisplayHash, doneTypingInterval); // 新しいタイマーを設定
+        }
+
+        // ページロード時の初期ハッシュ値生成
+        window.onload = () => {
+            inputText.value = '花子さんは太郎に10BTC送った'; // 初期値を設定
+            calculateAndDisplayHash(); // 初期表示は遅延なし
+        };
+
+        // テキスト入力時にタイマーを起動
+        inputText.addEventListener('input', onInput);
+    </script>
+</body>
+</html>
