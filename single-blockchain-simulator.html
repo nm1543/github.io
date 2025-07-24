@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>単一ブロックチェーンシミュレーター (PoW版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.25rem; /* text-4xl */
+            font-weight: 700; /* font-bold */
+        }
+        p {
+            color: #34495e;
+            margin-bottom: 25px;
+            font-size: 1.125rem; /* text-lg */
+            line-height: 1.6;
+        }
+        .section-title {
+            font-size: 1.75rem; /* text-3xl */
+            font-weight: 600;
+            color: #3b82f6;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.95rem;
+        }
+        textarea, input[type="text"], select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #34495e;
+            background-color: #f9fafb;
+            resize: vertical;
+            min-height: 40px;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus, input[type="text"]:focus, select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        button {
+            background-color: #ADD8E6; /* Light Blue for general buttons (add block) */
+            color: #333; /* Darker text for contrast */
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Lighter shadow for blue */
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+        }
+        /* Specific button styles */
+        button#proposeBlockButton {
+            background-color: #ADD8E6; /* Light Blue */
+            padding: 16px 32px; /* Larger padding */
+            font-size: 1.125rem; /* text-lg */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); /* Slightly darker shadow */
+            color: #333;
+        }
+        button#proposeBlockButton:hover:not(:disabled) {
+            background-color: #87CEEB; /* Sky Blue on hover */
+            transform: translateY(-2px);
+        }
+        button#proposeBlockButton:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button#mineBlockButton {
+            background-color: #4CAF50; /* Green for mining */
+            color: white;
+            padding: 16px 32px; /* Larger padding */
+            font-size: 1.125rem; /* text-lg */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+        button#mineBlockButton:hover:not(:disabled) {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        button#mineBlockButton:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Secondary buttons for operations */
+        .button-group button:not(#proposeBlockButton):not(#mineBlockButton):not(#cancelMiningButton) {
+            background-color: #6c757d; /* Medium gray for these buttons */
+            color: white; /* White text for contrast */
+            padding: 12px 25px; /* Slightly larger padding */
+            font-size: 1rem; /* base font size */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Darker shadow for gray */
+        }
+
+        .button-group button:not(#proposeBlockButton):not(#mineBlockButton):not(#cancelMiningButton):hover:not(:disabled) {
+            background-color: #5a6268; /* Darker gray on hover */
+            transform: translateY(-1px);
+        }
+        .button-group button:not(#proposeBlockButton):not(#mineBlockButton):not(#cancelMiningButton):active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
+
+        button:disabled {
+            background-color: #9e9e9e;
+            cursor: not-allowed;
+            box-shadow: none;
+            color: #666; /* Lighter text for disabled */
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            gap: 15px; /* Increased gap */
+        }
+        .blockchain-display {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #ffffff;
+        }
+        .block {
+            background-color: #ecf0f1;
+            border: 1px solid #dcdcdc;
+            border-radius: 8px;
+            padding: 15px; /* Increased padding */
+            margin-bottom: 15px; /* Increased margin */
+            text-align: left;
+            word-break: break-all;
+            position: relative;
+        }
+        .block.invalid {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .block.unmined { /* Style for unmined blocks */
+            background-color: #fffbe6; /* Light yellow */
+            border-color: #ffe082;
+            color: #8a6d3b;
+        }
+        .block.unmined .block-header-text, .block.unmined .block-detail {
+             color: #8a6d3b;
+        }
+
+        .block:last-child {
+            margin-bottom: 0;
+        }
+        .block-header-text {
+            font-weight: 600;
+            color: #34495e;
+            margin-bottom: 8px; /* Increased margin */
+            font-size: 1.1rem; /* Increased font size for labels */
+        }
+        .block.invalid .block-header-text, .block.invalid .block-detail {
+            color: #721c24;
+        }
+        .block-detail {
+            font-family: 'Courier New', Courier, monospace;
+            color: #555;
+            font-size: 1.05rem; /* Increased font size for values */
+        }
+        .block-detail.hash-value {
+            font-size: 1.15rem; /* Even larger for hash values */
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .block.invalid .block-detail.hash-value {
+            color: #721c24;
+        }
+        .message-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+        .message-box.show {
+            display: block;
+        }
+        .message-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        #miningStatus {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #f59e0b; /* Amber */
+            display: none;
+        }
+        #miningStatus.show {
+            display: block;
+        }
+        .back-button-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .back-button {
+            background-color: #4a5568; /* Darker gray for back button */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: none;
+            display: inline-block;
+            text-decoration: none; /* Remove underline for links */
+        }
+        .back-button:hover {
+            background-color: #2d3748;
+            transform: translateY(-1px);
+        }
+        .back-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-5">
+    <div class="container bg-white p-8 rounded-xl shadow-lg">
+        <h1 class="text-4xl font-bold mb-5 text-gray-800">単一ブロックチェーンシミュレーター (PoW版)</h1>
+        <p class="text-lg text-gray-700 mb-6">
+            このシミュレーターでは、プルーフ・オブ・ワーク (PoW) を含むブロックチェーンの動作を体験できます。新しいブロックを追加する際にマイニングが行われ、過去のデータを改ざんすると、その後のチェーンの整合性が失われる様子を確認できます。
+        </p>
+
+        <div class="section-title">ブロック追加と設定</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="input-group">
+                <label for="transactionDataInput">新しい取引データ:</label>
+                <input type="text" id="transactionDataInput" placeholder="例: 太郎が花子に5BTCを送る" value="太郎が花子に5BTCを送る">
+            </div>
+            <div class="input-group">
+                <label for="difficultyInput">難易度 (先頭のゼロの数):</label>
+                <input type="number" id="difficultyInput" min="1" max="5" value="2">
+            </div>
+        </div>
+        <div class="button-group">
+            <button id="proposeBlockButton">新しいブロックを追加</button>
+            <button id="mineBlockButton">マイニング実行</button>
+            <button id="cancelMiningButton" class="bg-red-500 hover:bg-red-600" style="display: none;">マイニングをキャンセル</button>
+        </div>
+        <div id="miningStatus" class="message-box message-info">マイニング中...</div>
+
+        <div class="section-title">操作パネル</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="input-group">
+                <label for="tamperBlockSelect">改ざんするブロック:</label>
+                <select id="tamperBlockSelect"></select>
+            </div>
+            <div class="input-group">
+                <label for="tamperNewDataInput">新しいデータ:</label>
+                <input type="text" id="tamperNewDataInput" placeholder="新しいデータ">
+            </div>
+        </div>
+        <div class="button-group">
+            <button id="tamperButton">ブロックを改ざん</button>
+            <button id="verifyChainButton">チェーンの整合性を検証</button>
+            <button id="resetSimulationButton">シミュレーションをリセット</button>
+        </div>
+
+        <div class="message-box" id="globalMessageBox"></div>
+
+        <div class="section-title">ブロックチェーン</div>
+        <div class="blockchain-display" id="blockchainDisplay">
+            <!-- Blockchain blocks will be rendered here by JavaScript -->
+        </div>
+
+        <div class="back-button-container">
+            <a href="index.html" class="back-button">インデックスへ戻る</a>
+        </div>
+    </div>
+
+    <script>
+        // Blockクラスの定義
+        class Block {
+            /**
+             * ブロックのコンストラクタ
+             * @param {number} index - ブロックのインデックス (連番)
+             * @param {string} timestamp - ブロックが作成された日時
+             * @param {string} data - ブロックに含まれる取引データ
+             * @param {string} previousHash - 前のブロックのハッシュ値
+             * @param {number} nonce - プルーフ・オブ・ワークで使用される数値
+             */
+            constructor(index, timestamp, data, previousHash = '') {
+                this.index = index;
+                this.timestamp = timestamp;
+                this.data = data;
+                this.previousHash = previousHash;
+                this.nonce = 0; // プルーフ・オブ・ワーク用の初期値
+                this.hash = this.calculateHash(); // 自身のハッシュを計算
+            }
+
+            /**
+             * ブロックのハッシュを計算するメソッド (SHA-256を使用)
+             * ブロックのすべての要素 (インデックス、前のハッシュ、タイムスタンプ、データ、nonce) を結合してハッシュ化します。
+             * @returns {string} 計算されたハッシュ値
+             */
+            calculateHash() {
+                return CryptoJS.SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data) + this.nonce).toString(CryptoJS.enc.Hex);
+            }
+
+            /**
+             * ブロックのデータを変更するメソッド (改ざん用)
+             * データが変更されると、ブロック自身のハッシュ値も再計算されます。
+             * この際、nonceはリセットされず、新しいデータと既存のnonceでハッシュが計算されるため、
+             * 通常はPoWの条件を満たさなくなります。
+             * @param {string} newData - 新しいデータ
+             */
+            tamperData(newData) {
+                this.data = newData;
+                this.hash = this.calculateHash(); // データ変更後、ハッシュを再計算
+            }
+        }
+
+        // Blockchainクラスの定義
+        class Blockchain {
+            /**
+             * ブロックチェーンのコンストラクタ
+             * @param {number} difficulty - マイニングの難易度 (ハッシュの先頭に要求されるゼロの数)
+             */
+            constructor(difficulty = 2) {
+                this.difficulty = difficulty;
+                this.chain = []; // チェーンを空で初期化
+            }
+
+            /**
+             * ジェネシスブロック (最初のブロック) を作成するメソッド
+             * ジェネシスブロックもPoWの条件を満たすようにマイニングされます。
+             * @returns {Block} ジェネシスブロック
+             */
+            async createGenesisBlock() {
+                // ジェネシスブロックのインデックスを1に変更
+                const genesisBlock = new Block(1, new Date().toLocaleString(), "Genesis Block", "0");
+                await this.mineBlock(genesisBlock); // ジェネシスブロックもマイニング
+                this.chain.push(genesisBlock);
+            }
+
+            /**
+             * チェーンの最新のブロックを取得するメソッド
+             * @returns {Block} 最新のブロック
+             */
+            getLatestBlock() {
+                return this.chain[this.chain.length - 1];
+            }
+
+            /**
+             * 新しいブロックをチェーンに追加するメソッド (マイニングは含まない)
+             * @param {string} data - 新しいブロックに含めるデータ
+             */
+            addBlock(data) {
+                // チェーンが空の場合は、新しいブロックを追加できないようにする
+                if (this.chain.length === 0) {
+                    showMessageBox('ジェネシスブロックがまだ作成されていません。', 'error');
+                    return;
+                }
+                const newBlock = new Block(
+                    this.getLatestBlock().index + 1, // 最新ブロックのインデックスに1を加算
+                    new Date().toLocaleString(),
+                    data,
+                    this.getLatestBlock().hash
+                );
+                this.chain.push(newBlock);
+                updateUI(); // UIを更新して、未マイニングブロックを表示
+                showMessageBox('新しいブロックが追加されました。マイニングを実行して確定してください。', 'info');
+            }
+
+            /**
+             * プルーフ・オブ・ワーク (PoW) を実行して指定されたブロックをマイニングするメソッド
+             * ハッシュ値が難易度条件を満たすまでnonceを増やし続けます。
+             * @param {Block} block - マイニングするブロック
+             * @returns {Promise<void>} マイニング完了時に解決されるPromise
+             */
+            async mineBlock(block) {
+                const targetPrefix = Array(this.difficulty + 1).join("0"); // 例: 難易度2なら "00"
+                return new Promise((resolve, reject) => {
+                    const mine = () => {
+                        // マイニングがキャンセルされた場合は即座に終了
+                        if (isMiningCancelled) {
+                            reject(new Error("Mining cancelled by user."));
+                            return;
+                        }
+
+                        block.hash = block.calculateHash();
+                        if (block.hash.substring(0, this.difficulty) !== targetPrefix) {
+                            block.nonce++;
+                            // UIがフリーズしないように、短い遅延を挟んで再帰的に呼び出す
+                            setTimeout(mine, 0);
+                        } else {
+                            resolve(); // マイニング完了
+                        }
+                    };
+                    mine();
+                });
+            }
+
+            /**
+             * チェーン全体の整合性を検証するメソッド
+             * 各ブロックのハッシュ値、前のハッシュとの連結、およびPoWの条件をチェックします。
+             * @returns {boolean} チェーンが有効であればtrue、そうでなければfalse
+             */
+            isChainValid() {
+                const targetPrefix = Array(this.difficulty + 1).join("0");
+
+                for (let i = 1; i < this.chain.length; i++) {
+                    const currentBlock = this.chain[i];
+                    const previousBlock = this.chain[i - 1];
+
+                    // 1. 現在のブロックのハッシュがPoWの条件を満たしているか
+                    if (currentBlock.hash.substring(0, this.difficulty) !== targetPrefix) {
+                        return false; // PoW条件を満たさない
+                    }
+
+                    // 2. 現在のブロックのハッシュが正しく計算されているか (データやnonceが改ざんされていないか)
+                    if (currentBlock.hash !== currentBlock.calculateHash()) {
+                        return false; // ハッシュの整合性が取れない
+                    }
+
+                    // 3. 現在のブロックのpreviousHashが前のブロックのハッシュと一致するか (連結が正しいか)
+                    if (currentBlock.previousHash !== previousBlock.hash) {
+                        return false; // チェーンの連結が正しくない
+                    }
+                }
+                // ジェネシスブロックのPoWも確認
+                const genesisBlock = this.chain[0];
+                if (genesisBlock.hash.substring(0, myBlockchain.difficulty) !== targetPrefix) { // Use myBlockchain.difficulty here
+                    return false;
+                }
+                if (genesisBlock.hash !== genesisBlock.calculateHash()) {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // グローバル変数
+        let myBlockchain; // ブロックチェーンインスタンス
+        let isMiningCancelled = false; // マイニングキャンセル状態を管理するフラグ
+        let isMiningInProgress = false; // マイニング中かどうかを示すフラグ
+
+        // DOM要素の取得
+        const transactionDataInput = document.getElementById('transactionDataInput');
+        const difficultyInput = document.getElementById('difficultyInput');
+        const proposeBlockButton = document.getElementById('proposeBlockButton'); // 新しいブロックを追加
+        const mineBlockButton = document.getElementById('mineBlockButton');     // マイニング実行
+        const cancelMiningButton = document.getElementById('cancelMiningButton'); // キャンセルボタン
+        const tamperBlockSelect = document.getElementById('tamperBlockSelect');
+        const tamperNewDataInput = document.getElementById('tamperNewDataInput');
+        const tamperButton = document.getElementById('tamperButton');
+        const verifyChainButton = document.getElementById('verifyChainButton');
+        const resetSimulationButton = document.getElementById('resetSimulationButton');
+        const blockchainDisplay = document.getElementById('blockchainDisplay');
+        const globalMessageBox = document.getElementById('globalMessageBox');
+        const miningStatus = document.getElementById('miningStatus');
+
+        /**
+         * 改ざんオプションのドロップダウンを更新する関数
+         */
+        function updateTamperOptions() {
+            tamperBlockSelect.innerHTML = ''; // ドロップダウンをクリア
+
+            // ジェネシスブロックを含むすべてのブロックをオプションに追加
+            for (let i = 0; i < myBlockchain.chain.length; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                // 表示されるブロック番号を実際のインデックスに合わせる
+                option.textContent = `ブロック ${myBlockchain.chain[i].index}`; 
+                tamperBlockSelect.appendChild(option);
+            }
+            // ドロップダウンが更新されたら、選択されているブロックのデータを「新しいデータ」欄に表示
+            populateTamperNewDataInput();
+        }
+
+        /**
+         * 「新しいデータ」入力欄に選択されたブロックのデータを自動的に表示する関数
+         */
+        function populateTamperNewDataInput() {
+            const selectedBlockArrayIndex = parseInt(tamperBlockSelect.value); // ドロップダウンのvalueは配列のインデックス
+            if (!isNaN(selectedBlockArrayIndex) && myBlockchain.chain[selectedBlockArrayIndex]) {
+                tamperNewDataInput.value = myBlockchain.chain[selectedBlockArrayIndex].data;
+            } else {
+                tamperNewDataInput.value = ''; // 選択されていない場合はクリア
+            }
+        }
+
+        /**
+         * メッセージボックスを表示する関数
+         * @param {string} message - 表示するメッセージ
+         * @param {string} type - メッセージの種類 ('success', 'error', 'info')
+         */
+        function showMessageBox(message, type) {
+            globalMessageBox.textContent = message;
+            globalMessageBox.className = `message-box show message-${type}`;
+            // 5秒後にメッセージを非表示にする
+            setTimeout(() => {
+                globalMessageBox.classList.remove('show');
+            }, 5000);
+        }
+
+        /**
+         * UIのボタンと入力フィールドの有効/無効を切り替える関数
+         */
+        function toggleUIState() {
+            // チェーンが空の場合は、getLatestBlock()を呼び出さない
+            if (myBlockchain.chain.length === 0) {
+                proposeBlockButton.disabled = true; // Disable if chain is empty
+                mineBlockButton.disabled = true; // ブロックがないのでマイニング不可
+                tamperButton.disabled = true;
+                verifyChainButton.disabled = true;
+                resetSimulationButton.disabled = isMiningInProgress;
+                transactionDataInput.disabled = isMiningInProgress;
+                difficultyInput.disabled = isMiningInProgress;
+                tamperBlockSelect.disabled = true;
+                tamperNewDataInput.disabled = true;
+                cancelMiningButton.style.display = isMiningInProgress ? 'inline-flex' : 'none';
+                miningStatus.classList.toggle('show', isMiningInProgress);
+                return;
+            }
+
+            const latestBlock = myBlockchain.getLatestBlock();
+            const targetPrefix = Array(myBlockchain.difficulty + 1).join("0");
+            const isLatestBlockMined = latestBlock.hash.substring(0, myBlockchain.difficulty) === targetPrefix && latestBlock.hash === latestBlock.calculateHash();
+
+            proposeBlockButton.disabled = isMiningInProgress; // マイニング中はブロック追加不可
+            // マイニング実行ボタンは、マイニング中ではない、かつ、
+            // 最新ブロックが未マイニングの場合、またはチェーンが不正な場合に有効
+            mineBlockButton.disabled = isMiningInProgress || (isLatestBlockMined && myBlockchain.isChainValid()); 
+
+            // マイニング中は他の操作を無効化
+            tamperButton.disabled = isMiningInProgress;
+            verifyChainButton.disabled = isMiningInProgress;
+            resetSimulationButton.disabled = isMiningInProgress;
+            transactionDataInput.disabled = isMiningInProgress;
+            // difficultyInput.disabled = isMiningInProgress; // 難易度変更はマイニング中でも可能に
+            tamperBlockSelect.disabled = isMiningInProgress;
+            tamperNewDataInput.disabled = isMiningInProgress;
+
+            // キャンセルボタンの表示/非表示
+            cancelMiningButton.style.display = isMiningInProgress ? 'inline-flex' : 'none';
+            miningStatus.classList.toggle('show', isMiningInProgress);
+        }
+
+
+        /**
+         * UIを更新する関数 (ブロックチェーンの表示と改ざんオプションの更新)
+         */
+        function updateUI() {
+            blockchainDisplay.innerHTML = ''; // ブロックチェーン表示エリアをクリア
+
+            const targetPrefix = Array(myBlockchain.difficulty + 1).join("0");
+
+            for (let i = 0; i < myBlockchain.chain.length; i++) {
+                const block = myBlockchain.chain[i];
+                const blockDiv = document.createElement('div');
+                let blockClass = 'block rounded-lg p-3 mb-2';
+
+                let isValidBlock = true;
+                // PoW条件を満たしているか
+                // ここでmyBlockchain.difficultyを使用する
+                if (block.hash.substring(0, myBlockchain.difficulty) !== targetPrefix) {
+                    isValidBlock = false;
+                }
+                // ハッシュが正しく計算されているか
+                if (block.hash !== block.calculateHash()) {
+                    isValidBlock = false;
+                }
+                // 前のハッシュとの連結が正しいか (ジェネシスブロック以外)
+                if (block.index > 1 && block.previousHash !== myBlockchain.chain[i - 1].hash) { // ジェネシスブロックのインデックスが1になったため、条件をindex > 1 に変更
+                    isValidBlock = false;
+                }
+
+                if (!isValidBlock) {
+                    blockClass += ' invalid';
+                } else if (i === myBlockchain.chain.length - 1 && !isMiningInProgress && block.hash.substring(0, myBlockchain.difficulty) !== targetPrefix) {
+                    // 最新ブロックがまだマイニングされていない場合
+                    blockClass += ' unmined';
+                }
+
+
+                blockDiv.className = blockClass;
+
+                blockDiv.innerHTML = `
+                    <div class="block-header-text">ブロック: <span class="block-detail">${block.index}</span></div> <!-- 「インデックス」を「ブロック」に修正 -->
+                    <div class="block-header-text">データ: <span class="block-detail">${block.data}</span></div>
+                    <div class="block-header-text">前のハッシュ: <span class="block-detail hash-value">${block.previousHash}</span></div>
+                    <div class="block-header-text">ハッシュ: <span class="block-detail hash-value">${block.hash}</span></div>
+                    <div class="block-header-text">Nonce: <span class="block-detail">${block.nonce}</span></div>
+                `;
+                blockchainDisplay.appendChild(blockDiv);
+            }
+
+            // 改ざんオプションのドロップダウンを更新
+            updateTamperOptions();
+            toggleUIState(); // UIの状態を更新
+        }
+
+
+        /**
+         * 新しいブロックを提案するイベントハンドラ
+         */
+        proposeBlockButton.addEventListener('click', () => {
+            const transactionData = transactionDataInput.value.trim();
+            if (!transactionData) {
+                showMessageBox('取引データを入力してください。', 'error');
+                return;
+            }
+
+            myBlockchain.addBlock(transactionData);
+            // transactionDataInput.value = ''; // この行を削除またはコメントアウト
+            toggleUIState(); // UIの状態を更新
+        });
+
+        /**
+         * マイニングを実行するイベントハンドラ
+         */
+        mineBlockButton.addEventListener('click', async () => {
+            // チェーンが不正な場合は、チェーン全体を再マイニングする
+            if (!myBlockchain.isChainValid()) {
+                showMessageBox('チェーンの整合性が失われています。チェーン全体を再マイニングして回復します。', 'info');
+                await reMineAllBlocksFrom(0); // ジェネシスブロックから再マイニングを開始
+                return;
+            }
+
+            const latestBlock = myBlockchain.getLatestBlock();
+            const targetPrefix = Array(myBlockchain.difficulty + 1).join("0");
+
+            // 最新ブロックが既にマイニング済みかチェック
+            if (latestBlock.hash.substring(0, myBlockchain.difficulty) === targetPrefix && latestBlock.hash === latestBlock.calculateHash()) {
+                showMessageBox('最新のブロックは既にマイニングされています。新しいブロックを追加してください。', 'info');
+                return;
+            }
+            
+            isMiningCancelled = false;
+            isMiningInProgress = true;
+            toggleUIState(); // マイニング開始状態にUIを更新
+
+            try {
+                await myBlockchain.mineBlock(latestBlock);
+                if (!isMiningCancelled) {
+                    updateUI(); // マイニング完了後にUIを更新
+                    showMessageBox('マイニングが完了し、新しいブロックがチェーンに追加されました。', 'success');
+                } else {
+                    showMessageBox('マイニングがキャンセルされました。', 'info');
+                }
+            } catch (error) {
+                if (error.message === "Mining cancelled by user.") {
+                    showMessageBox('マイニングがユーザーによってキャンセルされました。', 'info');
+                } else {
+                    showMessageBox('マイニング中にエラーが発生しました: ' + error.message, 'error');
+                }
+            } finally {
+                isMiningInProgress = false;
+                toggleUIState(); // マイニング終了状態にUIを更新
+            }
+        });
+
+
+        /**
+         * マイニングをキャンセルするイベントハンドラ
+         */
+        cancelMiningButton.addEventListener('click', () => {
+            isMiningCancelled = true; // キャンセルフラグを設定
+            // mineBlock内のPromiseがrejectされるのを待ち、finallyブロックが実行される
+        });
+
+        /**
+         * ブロックを改ざんするイベントハンドラ
+         */
+        tamperButton.addEventListener('click', () => {
+            const blockArrayIndex = parseInt(tamperBlockSelect.value); // ドロップダウンのvalueは配列のインデックス
+            const newData = tamperNewDataInput.value.trim();
+
+            if (isNaN(blockArrayIndex) || !newData) {
+                showMessageBox('改ざんするブロックと新しいデータをすべて選択/入力してください。', 'error');
+                return;
+            }
+
+            if (myBlockchain.chain[blockArrayIndex]) {
+                const blockIndexToDisplay = myBlockchain.chain[blockArrayIndex].index; // 表示用のブロックインデックスを取得
+                myBlockchain.chain[blockArrayIndex].tamperData(newData);
+                updateUI();
+                showMessageBox(`ブロック ${blockIndexToDisplay} が改ざんされました。ハッシュ値と、その後のブロックの整合性の変化に注目してください。`, 'info');
+            } else {
+                showMessageBox('指定されたブロックが見つかりません。', 'error');
+            }
+        });
+
+        /**
+         * チェーンの整合性を検証するイベントハンドラ
+         */
+        verifyChainButton.addEventListener('click', () => {
+            if (myBlockchain.isChainValid()) {
+                showMessageBox('✅ チェーンは整合性が保たれています。改ざんは検出されませんでした。', 'success');
+            } else {
+                showMessageBox('❌ チェーンの整合性が失われています！改ざんが検出されました。', 'error');
+            }
+            updateUI(); // 検証結果をUIに反映するため再描画
+        });
+
+        /**
+         * 難易度変更時にチェーン全体を再マイニングする関数
+         * @param {number} startIndex - 再マイニングを開始するブロックの配列インデックス
+         */
+        async function reMineAllBlocksFrom(startIndex = 0) {
+            isMiningCancelled = false;
+            isMiningInProgress = true;
+            toggleUIState(); // UIをマイニング中の状態に設定
+
+            try {
+                for (let i = startIndex; i < myBlockchain.chain.length; i++) {
+                    if (isMiningCancelled) {
+                        throw new Error("Mining cancelled by user.");
+                    }
+                    const currentBlock = myBlockchain.chain[i];
+                    currentBlock.nonce = 0; // 再マイニングのためにnonceをリセット
+
+                    // 現在のブロックがジェネシスブロックでない場合、前のブロックの新しいハッシュにpreviousHashを更新
+                    if (i > 0) {
+                        currentBlock.previousHash = myBlockchain.chain[i - 1].hash;
+                    }
+                    
+                    await myBlockchain.mineBlock(currentBlock); // 現在のブロックを再マイニング
+
+                    updateUI(); // 各ブロックが再マイニングされるたびにUIを更新
+                    await new Promise(resolve => setTimeout(resolve, 50)); // 視覚的な更新のために短い遅延
+                }
+                if (!isMiningCancelled) {
+                    showMessageBox('チェーン全体が新しい難易度で再マイニングされました。', 'success');
+                } else {
+                    showMessageBox('チェーンの再マイニングがキャンセルされました。', 'info');
+                }
+            } catch (error) {
+                if (error.message === "Mining cancelled by user.") {
+                    showMessageBox('チェーンの再マイニングがユーザーによってキャンセルされました。', 'info');
+                } else {
+                    showMessageBox('チェーンの再マイニング中にエラーが発生しました: ' + error.message, 'error');
+                }
+            } finally {
+                isMiningInProgress = false;
+                toggleUIState(); // UIの状態をリセット
+            }
+        }
+
+        /**
+         * 難易度入力が変更されたときの処理
+         */
+        difficultyInput.addEventListener('change', async () => {
+            const newDifficulty = parseInt(difficultyInput.value);
+            if (!isNaN(newDifficulty) && newDifficulty >= 1 && newDifficulty <= 5) {
+                myBlockchain.difficulty = newDifficulty; // 難易度を更新
+
+                // 既存のブロックがある場合、チェーン全体を再マイニングする
+                if (myBlockchain.chain.length > 0) {
+                    showMessageBox(`難易度が ${newDifficulty} に変更されました。チェーン全体を新しい難易度で再マイニングします。`, 'info');
+                    await reMineAllBlocksFrom(0); // ジェネシスブロックから再マイニングを開始 (配列インデックス0)
+                } else {
+                    showMessageBox(`難易度が ${newDifficulty} に変更されました。新しいブロックを追加してマイニングを開始してください。`, 'info');
+                }
+                updateUI(); // 難易度変更または再マイニング後にUIが更新されることを確認
+            } else {
+                showMessageBox('難易度は1から5の間の整数で入力してください。', 'error');
+                difficultyInput.value = myBlockchain.difficulty; // 不正な入力は元の値に戻す
+            }
+        });
+
+        /**
+         * シミュレーションをリセットするイベントハンドラ
+         */
+        resetSimulationButton.addEventListener('click', () => {
+            initializeSimulation();
+        });
+
+        // tamperBlockSelect の選択が変更されたときに tamperNewDataInput を更新
+        tamperBlockSelect.addEventListener('change', populateTamperNewDataInput);
+
+        // 初期化
+        initializeSimulation();
+
+        async function initializeSimulation() {
+            const initialDifficulty = parseInt(difficultyInput.value);
+            myBlockchain = new Blockchain(initialDifficulty);
+            // ジェネシスブロックの作成が完了するまで待機
+            await myBlockchain.createGenesisBlock(); 
+            transactionDataInput.value = '太郎が花子に5BTCを送る'; // デフォルト値を設定
+            showMessageBox('シミュレーションが開始されました。', 'info');
+            updateUI(); // ジェネシスブロックが追加され、UIも更新された後にUI状態を最終調整
+        }
+    </script>
+</body>
+</html>
